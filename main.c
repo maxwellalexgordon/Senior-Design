@@ -7,6 +7,7 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/uart.h"
 #include <stdio.h>
+#include <ctype.h>
 
 
 
@@ -20,16 +21,16 @@ void charSwap(char* a, char* b){
 }
 
 // function to convert decimal to hexadecimal
-void decToHexa(char* hex, int n, int size)
+void decToHexa(char* hex, int n)
 {
     //multiply num by 10
      n = n * 10;
 
 
     //check if neg
-   // if(n<0){
-    //    n = 65536 - n;//2**16 - n;
-    //}
+    if(n<0){
+       n = 65536 + n; //2**16 + n;
+   }
 
     // counter for hexadecimal number array
     int i = 0;
@@ -56,16 +57,7 @@ void decToHexa(char* hex, int n, int size)
         n = n/16;
     }
 
-    /*
-    //reverse characters
-    int start = 0;
-    int end = size;
-    while(start < end){
-        charSwap(hex+start, hex+end);
-        start++;
-        end--;
-    }
-    */
+
 
 }
 
@@ -122,30 +114,66 @@ void USART_PutString(char *s, int port)
     }
 
 }
-void setTemp(int temp){
-    char setTemp[11] = {'*','1','c','f','f','f','1','f','7','\r'};  //-1.5C
+void setTemp(float t, int UART_num){
+     char setTemp[10] = {'*','1','c','0','0','0','0','0','0','\r'};  //-1.5C
 
-    /*UART TEMP CONTROL COMMANDS
-    stx relates to '*'
-    the command code is '1','c'
-    data being transmitted is '0','0','6','4' = 10 degrees
-    checksum is '5','3'  last two digits of sum (hex) (not including start and stop)
-    return is '\r'
-    */
+     int temp = (int)(t * 10);
+     char hex_temp[4] = "0000";
+     decToHexa(&hex_temp, temp);
 
-    USART_PutString(setTemp,0);
+     //print temp conversion
+     // for(int i = 3; i>= 0; i--){
+     // printf("%c\n",hex_temp[i]);
+     //}
+     //printf("\n\n\n");
+
+
+     //insert temp convertion
+     int count = 3;
+     int p;
+     for(p = 3; p<=6; p++){
+    setTemp[p] = tolower(hex_temp[count--]);
+    }
+
+
+
+    //calc check sum and add to setTemp string
+    calcCheckSum(setTemp);
+
+    //print full string
+    //printf("sending string: ");
+    //int i;
+    //for(i = 0; i<= 10; i++){
+    //    printf("%c",setTemp[i]);
+    //}
+    //printf("\n");
+    USART_PutString(setTemp, UART_num);
+
 }
 
 void calcCheckSum(char* arr){
     int total = 0;
     int var;
-    for (var = 0; var <= 8; ++var) {
-           total = total + (int)arr[var];
+    for (var = 1; var <= 6; ++var) {
+          //printf("Adding: %c   %x\n",arr[var], arr[var]);
+           total = total + arr[var];
     }
-    total =  total + 0;
 
+    //convert checksum value to hex
+    char FULLCS[4]= "0000";
+    decToHexa(&FULLCS, total);
+
+
+    //print cmd
+    //printf("\nfullcs: \n");
+    //for(int i = 0; i<= 3; i++){
+    //  printf("%c\n",FULLCS[i]);
+    //}
+
+    //add 2 LSB of check sum to main statement arr
+    arr[7] = tolower(FULLCS[1]);
+    arr[8] = tolower(FULLCS[0]);
 }
-
 
 void getTempSensor(){
    char getTemp[10] ={'*','0','1','0','0','0','0','2','1','\r'};
@@ -158,23 +186,16 @@ int main(void) {
 
     //turn on UARTS
     setUpUART0();
-
-   // int temperature = 1;
-    //int size_of_hex = 4;
-    //char hex_temp[4] = "0000";
-    //decToHexa(&hex_temp, temperature, size_of_hex);
-
-
-    //setTemp(100);
-
-   // calcCheckSum(hex_temp);
-
-    setTemp(10);
-    USART_PutString("\n", 0);
+    setUpUART5();
+    //float i;
+    //for(i = -5; i <5; i = i + 0.5){
+    //       setTemp(i);
+    //   }
 
 
-
-
+    delayMs(100);
+    setTemp(10,5);
+    setTemp(10,0);
 
 
     //infinite loop
