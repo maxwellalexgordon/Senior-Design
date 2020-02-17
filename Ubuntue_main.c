@@ -166,9 +166,7 @@ void getTempSensor(){
 
 
 int main(void) {
-    for(float i = -5; i <5; i = i + 0.5){
-        setTemp(i);
-    }
+   
     
 
   
