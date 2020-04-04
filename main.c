@@ -25,9 +25,20 @@
 #include "utils/uartstdio.c"
 #include <string.h>
 #include <ctype.h>
+#include "driverlib/debug.h"
+#include "driverlib/pin_map.h"
+#include "state.h"
+
+//Constants
+#define plate_0 0
+#define plate_1 5
+#define plate_2 7
+#define mix_on "00020001"
+#define mix_off "00020002"
+
 
 //Variables
-uint8_t ui8PinData; //used for stpper/LED
+uint8_t ui8PinData; //used for stepper/LED
 uint32_t ui32ADC0Value [4]; //Set ui32ADC0Value as a 4 element array of unsigend 32 bit integer data type.
 volatile uint32_t adcval; //Set adcval as the averaged data to be read from ADC.
 
@@ -36,8 +47,7 @@ volatile uint32_t adcval; //Set adcval as the averaged data to be read from ADC.
 
 //math help
 //Implementation of itoa()
-char* itoa(int num, char* str, int base)
-{
+char* itoa(int num, char* str, int base){
     int i = 0;
     bool isNegative = false;
 
@@ -76,7 +86,6 @@ char* itoa(int num, char* str, int base)
 
     return str;
 }
-
 
 //set up PWM on LED PF1
 void setUpPWM(){
@@ -128,13 +137,13 @@ void setUpPWM(){
 }
 
 void turnOnPWM(){
-	// Enable the PWM output signal
+    // Enable the PWM output signal
     PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT, true);
-	
+
 }
 
 void turnOffPWM(){
-	// Disable the PWM output signal
+    // Disable the PWM output signal
     PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT, false);
 }
 
@@ -161,8 +170,7 @@ int power(int base, int exponent)
 }
 
 //uses pin PF3
-void setUpADC0()
-{
+void setUpADC0(){
 
      SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0); //Enable ADC0.
      //Set the sequencer 1, with 4 sample storage capacity to be triggered by the processor with highest priority.
@@ -176,8 +184,7 @@ void setUpADC0()
      ADCSequenceEnable(ADC0_BASE, 1); //Enable ADC0's sample sequencer 1.
 }
 
-uint32_t getADC0_val()
-{
+uint32_t getADC0_val(){
     ADCIntClear(ADC0_BASE, 1); //Clear the interrupt.
    ADCProcessorTrigger(ADC0_BASE, 1); //Trigger the ADC to start converting and taking samples.
    while(!ADCIntStatus(ADC0_BASE, 1, false)) //Wait for all samples to be put in the sequencer.
@@ -189,16 +196,14 @@ uint32_t getADC0_val()
    return adcval;
 }
 
-void charSwap(char* a, char* b)
-{
+void charSwap(char* a, char* b){
     char temp = *a;
     *a = *b;
     *b = temp;
 }
 
 // function to convert decimal to hexadecimal
-void decToHexa(char* hex, int n)
-{
+void decToHexa(char* hex, int n){
     //multiply num by 10
 
     //check if neg
@@ -234,8 +239,7 @@ void decToHexa(char* hex, int n)
 
 }
 
-void delayMs(uint32_t ui32Ms)
-{
+void delayMs(uint32_t ui32Ms){
 
     // 1 clock cycle = 1 / SysCtlClockGet() second
     // 1 SysCtlDelay = 3 clock cycle = 3 / SysCtlClockGet() second
@@ -245,8 +249,8 @@ void delayMs(uint32_t ui32Ms)
     SysCtlDelay(ui32Ms * (SysCtlClockGet() / 3 / 1000));
 }
 
-void setUpLED()
-{
+//F1,F2,F3
+void setUpLED(){
     //set up port F (LEDS)
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
     GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE,
@@ -256,8 +260,7 @@ void setUpLED()
 }
 
 //direction on PF1, Step on PF2, enjoys the LEDs
-void stepBack()
-{
+void stepBack(){
     //turn PF2 on, PF1 off
     ui8PinData = 4;
 
@@ -280,8 +283,7 @@ void stepBack()
 }
 
 //direction on PF1, Step on PF2, enjoys the LEDs
-void stepForward()
-{
+void stepForward(){
     //turn PF2 on, PF1 off
     ui8PinData = 6;
 
@@ -303,8 +305,7 @@ void stepForward()
     delayMs(1);
 }
 
-void setUpUART0()
-{
+void setUpUART0(){
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0); //Enable UART 7 in GPIO port A.
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA); //Enable port A.
     GPIOPinConfigure(GPIO_PA0_U0RX); //Set port A pin 0 as UART 0 RX.
@@ -316,8 +317,7 @@ void setUpUART0()
             (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
 }
 
-void setUpUART5()
-{
+void setUpUART5(){
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART5); //Enable UART 5 in GPIO port E
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE); //Enable port E.
     GPIOPinConfigure(GPIO_PE4_U5RX); //Set port E pin 4 as UART 5 RX.
@@ -329,8 +329,7 @@ void setUpUART5()
             (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
 }
 
-void setUpUART7()
-{
+void setUpUART7(){
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART7); //Enable UART 7 in GPIO port E.
     // SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE); //Enable port E.  -----UART5 will turn it on.
     GPIOPinConfigure(GPIO_PE0_U7RX); //Set port E pin 0 as UART 7 RX.
@@ -344,8 +343,7 @@ void setUpUART7()
 }
 
 //send array of chars
-void USART_PutString(char *s, int port)
-{
+void USART_PutString(char *s, int port){
     switch (port)
     {
     case 0:
@@ -372,8 +370,7 @@ void USART_PutString(char *s, int port)
     }
 
 }
-void setTemp(float t, int UART_num)
-{
+void setTemp(float t, int UART_num){
     char setTemp[10] = { '*', '1', 'c', '0', '0', '0', '0', '0', '0', '\r' }; //-1.5C
 
     int temp = (int) (t * 10);
@@ -395,8 +392,7 @@ void setTemp(float t, int UART_num)
 
 }
 
-void calcCheckSum(char* arr)
-{
+void calcCheckSum(char* arr){
     int total = 0;
     int var;
     for (var = 1; var <= 6; ++var)
@@ -414,8 +410,7 @@ void calcCheckSum(char* arr)
     arr[8] = tolower(FULLCS[0]);
 }
 
-int baseToDec(int base, char* value)
-{
+int baseToDec(int base, char* value){
     int val = 0;
     int pow = 0;
     int mult = 0;
@@ -436,8 +431,7 @@ int baseToDec(int base, char* value)
     return val;
 }
 //NEED T0 CHECK!!!
-int getTempSensor()
-{
+int getTempSensor(){
     char getTemp[10] = { '*', '0', '1', '0', '0', '0', '0', '2', '1', '\r' };
     calcCheckSum(getTemp);
     //ask for temp
@@ -467,15 +461,13 @@ int getTempSensor()
 
 }
 //UART5
-void turnPlateOn()
-{
+void turnPlateOn(){
     char turnOn[10] = { '*', '3', '0', '0', '0', '0', '1', '0', '0', '\r' };
     calcCheckSum(turnOn);
     USART_PutString(turnOn, 5);
 }
 //UART5
-void turnPlateOff()
-{
+void turnPlateOff(){
     char turnOff[10] = { '*', '3', '0', '0', '0', '0', '0', '0', '0', '\r' };
     calcCheckSum(turnOff);
     USART_PutString(turnOff, 5);
@@ -496,16 +488,16 @@ void read_UART5()
 
     }
 }
-int main(void)
 
-{
+
+int main(void){
 //set up system clock
     SysCtlClockSet(
     SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);      //50Mhz == 400Mhz base /4(sys div)/2(internal)
- 
+
     //turn on UARTS
-    //setUpUART0();
-    //setUpUART5();  //turns on port E for UART5 & UART7
+    setUpUART0();
+    setUpUART5();  //turns on port E for UART5 & UART7
     //setUpUART7();
 
     //set up LED(used for stepper)
@@ -517,16 +509,48 @@ int main(void)
     //set up PWM PF1
     //setUpPWM();
 
-    
+
 
 
 
 
 //////////////////////////////////////////////////////////////////////////////
 
-   while(1){
-       stepBack();
 
-   }
+   //run through FSM, send data to UART5 at each transition
+
+   STATE state = STATE_IDLE;
+    while(1){
+        switch(state){
+            case STATE_IDLE:
+                //turn coolers on
+                //do not mix
+                //blink LED
+                USART_PutString("IDLE \n \r", plate_1);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3,
+                               2);
+                break;
+
+            case STATE_START:
+                //start mixing
+                //next LED
+                USART_PutString("START \n \r", plate_1);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3,
+                               4);
+                break;
+
+            case STATE_END:
+                USART_PutString("END \n \r", plate_1);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3,
+                               8);
+                break;
+        }
+
+    //get next state after running state
+    state = StateGetNext(state);
+
+    //delay
+    delayMs(100);
+    }
 
 }
