@@ -19,6 +19,15 @@ STATE StateGetNext(STATE current)
         case STATE_START:
             next = STATE_END;
             break;
+        case STATE_BAG1_RELEASE:
+            next = STATE_BAG2_RELEASE;
+            break;
+        case STATE_BAG2_RELEASE:
+            next = STATE_BAG3_RELEASE;
+            break;
+        case STATE_BAG3_RELEASE:
+            next = STATE_END;
+            break;
         default:
             next = STATE_IDLE;
     }
