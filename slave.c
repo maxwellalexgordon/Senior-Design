@@ -513,12 +513,20 @@ void UARTIntHandler(void)
     unsigned long ulStatus;
     //char command[9] = "00000000";
     int count = 0;
-    char rx;
+    char rx = 0;
 
     ulStatus = UARTIntStatus(UART5_BASE, true); //get interrupt status
     UARTIntClear(UART5_BASE, ulStatus);         //clear the asserted interrupts
 
-    while (UARTCharsAvail(UART5_BASE)) //loop while there are chars
+
+    //read until char = '*'
+    while(rx != '*' && UARTCharsAvail(UART5_BASE)){
+        rx = UARTCharGet(UART5_BASE);
+        UARTCharPutNonBlocking(UART0_BASE, rx);
+    }
+    
+
+    if (UARTCharsAvail(UART5_BASE))   //loop 8 char, ***STOP at '\r' (exclusive)
     {
 
         for (count = 0; count < 8; count++)
@@ -535,7 +543,7 @@ void UARTIntHandler(void)
             //store data
             command[count] = rx;
         }
-        break;
+       
     }
 
     //print to terminal
@@ -544,7 +552,7 @@ void UARTIntHandler(void)
 
     //find command and run it
     runCommand(&command);
-   // USART_PutString("\n \r",plate_0);
+  
 
 }
 
@@ -567,6 +575,35 @@ void setUpUART5()
     UARTIntEnable(UART5_BASE, UART_INT_RX | UART_INT_RT);
 }
 
+
+//uses pin PF3
+void setUpADC0()
+{
+
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0); //Enable ADC0.
+    //Set the sequencer 1, with 4 sample storage capacity to be triggered by the processor with highest priority.
+    ADCSequenceConfigure(ADC0_BASE, 1, ADC_TRIGGER_PROCESSOR, 0);
+    //Set the sequencer 1's first 3 samples to come from ADC pin 0 or PE3.
+    ADCSequenceStepConfigure(ADC0_BASE, 1, 0, ADC_CTL_CH0);
+    ADCSequenceStepConfigure(ADC0_BASE, 1, 1, ADC_CTL_CH0);
+    ADCSequenceStepConfigure(ADC0_BASE, 1, 2, ADC_CTL_CH0);
+    //Set the sequencer 3's sample 3 to be the final sample taken from ADC input pin 0 or PE3 and generate an interrupt when sample is set.
+    ADCSequenceStepConfigure(ADC0_BASE, 1, 3, ADC_CTL_CH0 | ADC_CTL_IE | ADC_CTL_END);
+    ADCSequenceEnable(ADC0_BASE, 1); //Enable ADC0's sample sequencer 1.
+}
+
+uint32_t getADC0_val()
+{
+    ADCIntClear(ADC0_BASE, 1);                 //Clear the interrupt.
+    ADCProcessorTrigger(ADC0_BASE, 1);         //Trigger the ADC to start converting and taking samples.
+    while (!ADCIntStatus(ADC0_BASE, 1, false)) //Wait for all samples to be put in the sequencer.
+    {
+    }
+    ADCSequenceDataGet(ADC0_BASE, 1, ui32ADC0Value); //Acquire the value captured in the sequencer.
+    //Set adcval to the average of the captured values. Add 2 for rounding off errors of four 0.5s.
+    adcval = (ui32ADC0Value[0] + ui32ADC0Value[1] + ui32ADC0Value[2] + ui32ADC0Value[3] + 2) / 4;
+    return adcval;
+}
 /*
 Function | Array
 ----------------

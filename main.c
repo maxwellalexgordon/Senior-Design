@@ -382,6 +382,39 @@ void USART_PutString(char *s, int port)
     }
     delayMs(100);
 }
+void USART_PutCommand(char *s, int port)
+{
+    switch (port)
+    {
+    case 0:
+       UARTCharPut(UART0_BASE, '*');
+        while (*s)
+        {
+            UARTCharPut(UART0_BASE, *s++);
+        }
+        break;
+    case 5:
+        UARTCharPut(UART5_BASE, '*');
+        while (*s)
+        {
+            UARTCharPut(UART5_BASE, *s++);
+        }
+
+        break;
+    case 7:
+         UARTCharPut(UART7_BASE, '*');
+        while (*s)
+        {
+            UARTCharPut(UART7_BASE, *s++);
+        }
+
+        break;
+    default:
+        break;
+    }
+    
+    delayMs(100);
+}
 
 void calcCheckSum(char *arr)
 {
@@ -556,16 +589,16 @@ int main(void)
            
             //turn mixer off & setPWM
             updatePWMCmd(plate_1_pwm);
-            USART_PutString(mix_enable, plate_1);
-            USART_PutString(setPWMCmd, plate_1);
-            USART_PutString(mix_off, plate_1);
+            USART_PutCommand(mix_enable, plate_1);
+            USART_PutCommand(setPWMCmd, plate_1);
+            USART_PutCommand(mix_off, plate_1);
 
             //turn cooler on
-            USART_PutString(plate_on, plate_1);
+            USART_PutCommand(plate_on, plate_1);
 
             //set cooler temp
             makeTempCmd(plate_1_temp);
-            USART_PutString(setTempCmd, plate_1);
+            USART_PutCommand(setTempCmd, plate_1);
 
             GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3,
                          2);
@@ -575,7 +608,7 @@ int main(void)
        
         case STATE_START:
             //start mixing
-            USART_PutString(mix_on, plate_1);
+            USART_PutCommand(mix_on, plate_1);
             
 
 
@@ -583,49 +616,49 @@ int main(void)
             break;
         case STATE_BAG1_RELEASE:
             //open valve 1
-            USART_PutString(valve_open, plate_1);
+            USART_PutCommand(valve_open, plate_1);
             //wait
             delayMs(plate_1_time);
             //close valve
-            USART_PutString(valve_close, plate_1);
+            USART_PutCommand(valve_close, plate_1);
 
             //turn plate 1 off
-            USART_PutString(plate_off, plate_1);
+            USART_PutCommand(plate_off, plate_1);
 
             break;
         case STATE_BAG2_RELEASE:
             //open valve 1
-           USART_PutString(valve_open, plate_1);
+           USART_PutCommand(valve_open, plate_1);
            //wait
            delayMs(plate_1_time);
            //close valve
-           USART_PutString(valve_close, plate_1);
+           USART_PutCommand(valve_close, plate_1);
 
            //turn plate 1 off
-           USART_PutString(plate_off, plate_1);
+           USART_PutCommand(plate_off, plate_1);
 
             //turn plate 2 off
             break;
         case STATE_BAG3_RELEASE:
             //open valve 1
-           USART_PutString(valve_open, plate_1);
+           USART_PutCommand(valve_open, plate_1);
            //wait
            delayMs(plate_1_time);
            //close valve
-           USART_PutString(valve_close, plate_1);
+           USART_PutCommand(valve_close, plate_1);
 
            //turn plate 1 off
-           USART_PutString(plate_off, plate_1);
+           USART_PutCommand(plate_off, plate_1);
             break;
         case STATE_END:
             //turn mix off
-            USART_PutString(mix_off, plate_1);
+            USART_PutCommand(mix_off, plate_1);
 
             //turn plate off
-            USART_PutString(plate_off, plate_1);
+            USART_PutCommand(plate_off, plate_1);
 
             //open valves
-            USART_PutString(valve_open, plate_1);
+            USART_PutCommand(valve_open, plate_1);
 
             GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3, 8);
             break;

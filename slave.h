@@ -31,5 +31,7 @@ void calcCheckSum(char *arr);
 int baseToDec(int base, char *value);
 void stepBack();
 void stepForward();
+void setUpADC0();
+uint32_t getADC0_val();
 
 #endif /* SLAVE_H_ */
